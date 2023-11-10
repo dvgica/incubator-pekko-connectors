@@ -239,7 +239,24 @@ lazy val googleCloudPubSubGrpc = pekkoConnectorProject(
     "-Wconf:src=.+/pekko-grpc/main/.+:s",
     "-Wconf:src=.+/pekko-grpc/test/.+:s"),
   compile / javacOptions := (compile / javacOptions).value.filterNot(_ == "-Xlint:deprecation")).enablePlugins(
-  PekkoGrpcPlugin).dependsOn(googleCommon)
+  PekkoGrpcPlugin, ShadingPlugin).dependsOn(googleCommon)
+  .settings(
+    shadingRules ++= {
+      val shadedPackage = "org.apache.pekko.stream.connectors.googlecloud.pubsub.grpc.shaded"
+      Seq(
+        ShadingRule.moveUnder("com.google", shadedPackage),
+        ShadingRule.moveUnder("io.grpc", shadedPackage),
+        ShadingRule.moveUnder("io.opencensus", shadedPackage),
+        ShadingRule.moveUnder("org.apache.commons", shadedPackage),
+        ShadingRule.moveUnder("org.apache.http", shadedPackage))
+    },
+    shadedDependencies ++= Set(
+      "io.grpc" % "grpc-stub" % "*",
+      "io.grpc" % "grpc-auth" % "*",
+      "com.google.auth" % "google-auth-library-oauth2-http" % "*",
+      "com.google.protobuf" % "protobuf-java" % "*"),
+    validNamespaces ++= Set("org", "grpc", "google", "mozilla"),
+    validEntries ++= Set("GSR2.crt", "reference.conf", "public-suffix-list.txt"))
 
 lazy val googleCloudStorage = pekkoConnectorProject(
   "google-cloud-storage",
